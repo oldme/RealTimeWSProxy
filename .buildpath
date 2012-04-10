@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<buildpath>
+	<buildpathentry combineaccessrules="false" exported="true" kind="prj" path="/NodejsTL"/>
+	<buildpathentry including="*.js" kind="src" path="src"/>
+	<buildpathentry kind="src" path="src/test"/>
+	<buildpathentry exported="true" kind="con" path="org.eclipse.dltk.mod.launching.INTERPRETER_CONTAINER"/>
+	<buildpathentry exported="true" kind="con" path="org.ebayopensource.vjet.eclipse.core.JSNATIVE_CONTAINER/JS Native Types"/>
+	<buildpathentry exported="true" kind="con" path="org.ebayopensource.vjet.eclipse.core.BROWSER_CONTAINER/Browser SDK"/>
+	<buildpathentry kind="con" path="org.ebayopensource.vjet.eclipse.core.VJO_CONTAINER/VJO LIB"/>
+</buildpath>
