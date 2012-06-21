@@ -1,0 +1,14 @@
+{
+    "name":"RTWSProxy",
+    "version":"0.0.1",
+    "author":"Narcis Armasu <narcis.armasu@trp.ro>",
+    "description":"HTTP proxy session manager",
+
+
+    "dependencies":{
+        "choreographer":">= 0.0.1",
+        "redis":">= 0.0.1",
+        "nodeunit":">= 0.0.1"
+    }
+
+}
