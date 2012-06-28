@@ -31,15 +31,26 @@ var credentials = {
 }
 
 credentials = JSON.stringify(credentials);
+
+var receivedSessions = new Array();
+
 // write data to request body
-var i = 0;
 for (var i = 0; i < numberOfClients; i++) {
     var req = http.request(options, function (res) {
-        console.log('STATUS: ' + res.statusCode);
         res.setEncoding('utf8');
+        var sessionId = '';
         res.on('data', function (chunk) {
-            console.log('BODY: ' + chunk);
-            http.request(deleteOptions).end();
+            sessionId += chunk;
+        });
+        res.on('end', function () {
+            if (sessionId) {
+                receivedSessions.push(sessionId);
+            }
+            if (receivedSessions.length === numberOfClients) {
+                console.log("Received session ids are: " + receivedSessions);
+                console.log("OK");
+                clean();
+            }
         });
     });
 
@@ -48,6 +59,16 @@ for (var i = 0; i < numberOfClients; i++) {
     });
     req.write(credentials);
     req.end();
+}
+
+function clean(code) {
+    //required in order to flush all console logs
+    setTimeout(function () {
+        if (code) {
+            process.exit(code);
+        }
+        process.exit(0);
+    }, 100);
 }
 
 

@@ -6,19 +6,51 @@ var redis = require("redis"),
     redis_client = redis.createClient();
 BACKUP_QUEUE_SUFIX = 'backup';
 
-exports.addMessage = function addMessage(clientId, event) {
-    redis_client.lpush(clientId, event);
+var queue = new Array();
+
+var clients = new Array();
+
+function ProxyMessageQueue(useRedis) {
+    this.useRedis = useRedis;
 }
 
-exports.getClientMessage = function getClientMessage(clientId, handler) {
-    //Remove and get the first element in a list, or block until one is available
-    var backupQueue = getBackupQueue(clientId);
-    redis_client.RPOPLPUSH(clientId, backupQueue, function (err, result) {
-        if (err) {
-            console.log("Message POP Error: " + err);
+ProxyMessageQueue.prototype.addMessage = addMessage;
+ProxyMessageQueue.prototype.getClientMessage = getClientMessage;
+ProxyMessageQueue.prototype.getAllClientMessages = getAllClientMessages;
+ProxyMessageQueue.prototype.cleanQueue = cleanQueue;
+ProxyMessageQueue.prototype.close = close;
+
+
+function addMessage(clientId, event) {
+    if (this.useRedis) {
+        redis_client.lpush(clientId, event);
+    }
+    else {
+        if (!clients[clientId]) {
+            clients[clientId] = new Array();
         }
-        handler(err, result, messageReceivedHandler);
-    });
+        clients[clientId].push(event);
+    }
+}
+
+function getClientMessage(clientId, handler) {
+    if (this.useRedis) {
+        //Remove and get the first element in a list, or block until one is available
+        var backupQueue = getBackupQueue(clientId);
+        redis_client.RPOPLPUSH(clientId, backupQueue, function (err, result) {
+            if (err) {
+                console.log("Message POP Error: " + err);
+            }
+            handler(err, result, messageReceivedHandler);
+        });
+    }
+    else {
+        var result;
+        if (clients[clientId]) {
+            result = clients[clientId].pop();
+        }
+        handler(null, result, null);
+    }
 }
 
 function messageReceivedHandler(clientId, err, message) {
@@ -32,48 +64,74 @@ function messageReceivedHandler(clientId, err, message) {
 }
 
 function putAllMessagesBackIntoTheMainQueue(backupQueue, clientId) {
-    redis_client.lrange(clientId, 0, -1, function (err, results) {
-        if (err) {
-            console.log("Message POP Error: " + err);
-        }
-        for (var res in results) {
-            addMessage(clientId, res);
-        }
-        //remove all messages from the queue;
-        redis_client.del(backupQueue);
-    });
+    if (this.useRedis) {
+        redis_client.lrange(clientId, 0, -1, function (err, results) {
+            if (err) {
+                console.log("Message POP Error: " + err);
+            }
+            for (var res in results) {
+                addMessage(clientId, res);
+            }
+            //remove all messages from the queue;
+            redis_client.del(backupQueue);
+        });
+    }
+    else {
+        console.error("REDIS IS NOT USED, this method should not have benn called");
+    }
 }
 
 function deleteMessageFromQueue(backupQueue, message) {
-    //delete all occurrences of the message in the queue
-    redis_client.lrem(backupQueue, 0, message);
+    if (this.useRedis) {
+        //delete all occurrences of the message in the queue
+        redis_client.lrem(backupQueue, 0, message);
+    }
 }
-
 
 function getBackupQueue(clientId) {
     return clientId + BACKUP_QUEUE_SUFIX;
 }
 
-exports.getAllClientMessages = function getAllClientMessages(clientId, handler, remove) {
-    //Remove and get the first element in a list, or block until one is available
-    redis_client.lrange(clientId, 0, -1, function (err, result) {
-        if (err) {
-            console.log("Message POP Error: " + err);
+function getAllClientMessages(clientId, handler, remove) {
+    if (this.useRedis) {
+        //Remove and get the first element in a list, or block until one is available
+        redis_client.lrange(clientId, 0, -1, function (err, result) {
+            if (err) {
+                console.error("Message POP Error: " + err);
+            }
+            handler(err, result);
+        });
+        if (remove) {
+            redis_client.del(clientId);
         }
-        handler(err, result);
-    });
-    if (remove) {
-        redis_client.del(clientId);
+    }
+    else {
+        handler(null, clients[clientId]);
+        if (remove) {
+            delete clients[clientId];
+        }
     }
 }
 
-exports.cleanQueue = function (clientId) {
-    redis_client.del(clientId);
+function cleanQueue(clientId) {
+    if (this.useRedis) {
+        redis_client.del(clientId);
+    }
+    else {
+        delete clients[clientId];
+    }
 }
 
-exports.close = function () {
-    redis_client.end();
+function close() {
+    if (this.useRedis) {
+        redis_client.end();
+    }
+    else {
+        clients = null;
+    }
+
 }
 
+module.exports = ProxyMessageQueue;
 
 

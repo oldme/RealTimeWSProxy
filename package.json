@@ -8,7 +8,9 @@
     "dependencies":{
         "choreographer":">= 0.0.1",
         "redis":">= 0.0.1",
-        "nodeunit":">= 0.0.1"
+        "nodeunit":">= 0.0.1",
+        "swarmutil":">=0.0.1",
+        "long-stack-traces":">=0.0.1"
     }
 
 }
